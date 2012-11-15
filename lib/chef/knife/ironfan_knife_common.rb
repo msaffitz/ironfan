@@ -132,7 +132,7 @@ module Ironfan
 
     def bootstrapper(computer)
       server   = computer.server
-      hostname = computer.dns_name
+      hostname = computer.machine.send(config[:attribute]) if computer.machine
       #
       bootstrap = Chef::Knife::Bootstrap.new
       bootstrap.config.merge!(config)

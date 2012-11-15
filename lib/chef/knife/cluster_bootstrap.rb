@@ -48,6 +48,15 @@ class Chef
         :description => "Verify host key, enabled by default.",
         :boolean => true,
         :default => true
+      option :attribute,
+        :short => "-a ATTR",
+        :long => "--attribute ATTR",
+        :description => "The attribute to use for opening the connection - default is fqdn (ec2 users may prefer public_hostname)"
+
+      def configure_session
+        config[:attribute]     ||= Chef::Config[:knife][:ssh_address_attribute] || "fqdn"
+        config[:identity_file] ||= Chef::Config[:knife][:identity_file]
+      end
 
       import_banner_and_options(Chef::Knife::Bootstrap,
         :except => [:chef_node_name, :run_list, :ssh_user, :distro, :template_file, :no_host_key_verify, :host_key_verify])
@@ -60,6 +69,9 @@ class Chef
 
       def perform_execution(target)
         ensure_common_environment(target)
+        configure_session
+
+        # reconcile_chef_config(target)
         # Execute across all servers in parallel
         Ironfan.parallel(target.values) {|computer| run_bootstrap(computer)}
 #         threads = target.servers.map{ |server| Thread.new(server) { |svr| run_bootstrap(svr, svr.public_hostname) } }

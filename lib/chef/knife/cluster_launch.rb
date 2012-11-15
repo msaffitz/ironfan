@@ -55,9 +55,24 @@ class Chef
         :boolean     => true,
         :default     => false
 
+      option :attribute,
+        :short => "-a ATTR",
+        :long => "--attribute ATTR",
+        :description => "The attribute to use for opening the connection - default is fqdn (ec2 users may prefer public_hostname)"
+      option :identity_file,
+        :short => "-i IDENTITY_FILE",
+        :long => "--identity-file IDENTITY_FILE",
+        :description => "The SSH identity file used for authentication"
+
+      def configure_session
+        config[:attribute]     ||= Chef::Config[:knife][:ssh_address_attribute] || "fqdn"
+        config[:identity_file] ||= Chef::Config[:knife][:identity_file]
+      end
+
       def run
         load_ironfan
         die(banner) if @name_args.empty?
+        configure_session
         configure_dry_run
 
         #
@@ -114,8 +129,8 @@ class Chef
         
         # Try SSH
         unless config[:dry_run]
-          Ironfan.step(computer.name, 'trying ssh', :white)
-          nil until tcp_test_ssh(computer.machine.dns_name){ sleep @initial_sleep_delay ||= 10  }
+          Ironfan.step(computer.name, "trying ssh to #{computer.machine.send(config[:attribute])}", :white)
+          nil until tcp_test_ssh(computer.machine.send(config[:attribute])){ sleep @initial_sleep_delay ||= 10  }
         end
 
         Ironfan.step(computer.name, 'final provisioning', :white)
